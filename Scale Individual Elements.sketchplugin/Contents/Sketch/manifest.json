@@ -1,0 +1,25 @@
+{
+  "author" : "precious design studio",
+  "commands" : [
+    {
+      "script" : "script.cocoascript",
+      "name" : "Scale Individual Elements",
+      "handlers" : {
+        "run" : "onRun"
+      },
+      "identifier" : "scale"
+    }
+  ],
+  "menu" : {
+    "title" : "Scale Individual Elements",
+    "isRoot": true,
+    "items" : [
+      "scale"
+    ]
+  },
+  "identifier" : "com.precious-forever.sketch.scale-individual-elements",
+  "version" : "1.0",
+  "description" : "",
+  "authorEmail" : "info@precious-forever.com",
+  "name" : "Scale Individual Elements"
+}

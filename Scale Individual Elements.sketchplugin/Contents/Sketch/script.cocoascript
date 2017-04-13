@@ -1,0 +1,199 @@
+var onRun = function(context) {
+
+  //get root layers to scale
+  var rootLayers = context.selection
+  if(!rootLayers.length) {
+    context.document.showMessage('Select artboard(s) and/or group(s) to scale')
+    return
+  }
+
+  //get first root layer
+  //dimensions will be based on this layer
+  var firstRootLayer = rootLayers[0]
+
+  //create alert
+  var alert = createAlert('Scale individual elements', 'Set the desired width and height for the elements.')
+
+  //add width field
+  var widthView = NSView.alloc().initWithFrame(NSMakeRect(0, 0, 300, 22))
+  var widthLabel = createLabel('Width', 12, false, NSMakeRect(0, 0, 50, 22))
+  widthView.addSubview(widthLabel)
+  var widthTextField = NSTextField.alloc().initWithFrame(NSMakeRect(50, 0, 150, 22))
+  widthView.addSubview(widthTextField)
+  alert.addAccessoryView(widthView)
+
+  //add height field
+  var heightView = NSView.alloc().initWithFrame(NSMakeRect(0, 0, 300, 22))
+  var heightLabel = createLabel('Height', 12, false, NSMakeRect(0, 0, 50, 22))
+  heightView.addSubview(heightLabel)
+  var heightTextField = NSTextField.alloc().initWithFrame(NSMakeRect(50, 0, 150, 22))
+  heightView.addSubview(heightTextField)
+  alert.addAccessoryView(heightView)
+
+  //set initial values
+  widthTextField.setStringValue(firstRootLayer.frame().width())
+  heightTextField.setStringValue(firstRootLayer.frame().height())
+
+  //add buttons
+  alert.addButtonWithTitle('Scale')
+  alert.addButtonWithTitle('Cancel')
+
+  //show alert
+  var response = alert.runModal()
+  if(response != '1000') return
+
+  //get dimensions
+  var targetWidth = widthTextField.stringValue()
+  var targetHeight = heightTextField.stringValue()
+
+  //scale all root layers
+  rootLayers.forEach(function(rootLayer) {
+    scaleRootLayer(rootLayer, targetWidth, targetHeight)
+  })
+
+  function scaleRootLayer(layer, width, height) {
+    if(!isLayerGroup(layer) && !isLayerArtboard(layer)) return
+
+    //get layer frame
+    var frame = layer.frame()
+
+    //get original width and height
+    var originalWidth = frame.width()
+    var originalHeight = frame.height()
+
+    //calculate ratios
+    var widthRatio = width / originalWidth
+    var heightRatio = height / originalHeight
+
+    if(isLayerGroup(layer)) {
+
+      //scale root group layer
+      scaleChildLayer(layer, layer, widthRatio, heightRatio)
+    }
+    else {
+
+      //set root layer dimensions
+      if(isLayerArtboard(layer)) {
+        frame.setWidth(width)
+        frame.setHeight(height)
+      }
+
+      //scale children
+      var children = layer.layers()
+      children.forEach(function(child) {
+        scaleChildLayer(layer, child, widthRatio, heightRatio)
+      })
+    }
+  }
+
+
+  function scaleChildLayer(parent, layer, widthRatio, heightRatio) {
+
+    //scaling group automatically scales child layers
+    if(isLayerGroup(layer)) {
+
+      //get original width and height
+      var frame = layer.frame()
+      var originalWidth = frame.width()
+      var originalHeight = frame.height()
+
+      //calculate new dimensions
+      var newWidth = originalWidth * widthRatio
+      var newHeight = originalHeight * heightRatio
+
+      //calculate new coordinates
+      var newX = frame.x() * widthRatio
+      var newY = frame.y() * heightRatio
+      if(layer == parent) {
+        newX = frame.x()
+        newY = frame.y()
+      }
+
+      //set frame
+      frame.setWidth(newWidth)
+      frame.setHeight(newHeight)
+      frame.setX(newX)
+      frame.setY(newY)
+
+      //refresh group and reload inspector
+      layer.resizeToFitChildrenWithOption(1)
+      context.document.reloadInspector()
+    }
+    else {
+
+      //get parent and layer frames
+      var parentFrame = parent.frame()
+      var frame = layer.frame()
+
+      //get original width and height
+      var originalWidth = frame.width()
+      var originalHeight = frame.height()
+
+      //calculate new dimensions
+      var newWidth = originalWidth * widthRatio
+      var newHeight = originalHeight * heightRatio
+
+      //calculate new coordinates
+      var newX = frame.x() * widthRatio
+      var newY = frame.y() * heightRatio
+
+      //set frame
+      frame.setWidth(newWidth)
+      frame.setHeight(newHeight)
+      frame.setX(newX)
+      frame.setY(newY)
+    }
+  }
+
+  function isLayerGroup(layer) {
+    return ([layer isKindOfClass: [MSLayerGroup class]] && ![layer isKindOfClass: [MSShapeGroup class]] && !isLayerArtboard(layer))
+  }
+
+  function isLayerArtboard(layer) {
+    return [layer isKindOfClass: [MSArtboardGroup class]]
+  }
+
+  function createAlert(title, message, iconFileName) {
+
+    var alert = [COSAlertWindow new]
+    [alert setMessageText: title]
+    [alert setInformativeText: message]
+
+    if(iconFileName) {
+
+      //get icon path
+      var scriptPath = [NSString stringWithString: context.scriptPath]
+      scriptPath = [scriptPath stringByDeletingLastPathComponent]
+      var iconPath = [scriptPath stringByAppendingPathComponent: iconFileName]
+
+      //set icon
+      var icon = [[NSImage alloc] initByReferencingFile: iconPath]
+      [alert setIcon: icon]
+    }
+
+    return alert
+  }
+
+  function createLabel(text, fontSize, bold, frame) {
+
+    //create label
+    var label = NSTextField.alloc().initWithFrame(frame)
+    label.setStringValue(text)
+
+    //set font
+    if (bold) {
+      label.setFont(NSFont.boldSystemFontOfSize(fontSize))
+    }
+    else {
+      label.setFont(NSFont.systemFontOfSize(fontSize))
+    }
+
+    //set properties to make the text field look like a label
+    label.setBezeled(false)
+    label.setDrawsBackground(false)
+    label.setEditable(false)
+    label.setSelectable(false)
+
+    return label
+  }
+};
